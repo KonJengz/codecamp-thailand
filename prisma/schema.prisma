@@ -7,3 +7,91 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments Enrollment[]
+}
+
+model Otp {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  email     String
+  code      String
+  expiresAt DateTime
+
+  @@unique([email, code])
+  @@index([email])
+}
+
+model Course {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  title       String
+  description String?
+  price       Decimal
+  imageUrl    String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  type CourseType @relation(fields: [courseTypeId], references: [id])
+
+  enrollments Enrollment[]
+
+  courseTypeId String @db.Uuid
+}
+
+model CourseType {
+  id      String    @id @default(uuid(7)) @db.Uuid
+  name    String
+  Course  Course[]
+  Chapter Chapter[]
+}
+
+model Enrollment {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String
+  courseId   String
+  enrolledAt DateTime @default(now())
+
+  User   User   @relation(fields: [userId], references: [id])
+  Course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model Chapter {
+  id       String @id @default(uuid())
+  title    String
+  position Int
+  courseId String
+
+  lessons      Lesson[]
+  CourseType   CourseType? @relation(fields: [courseTypeId], references: [id])
+  courseTypeId String?     @db.Uuid
+
+  @@unique([courseId, position])
+  @@index([title])
+}
+
+model Lesson {
+  id          String  @id @default(uuid())
+  title       String
+  position    Int
+  videoUrl    String?
+  description String?
+
+  chapterId String
+  Chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([chapterId, position])
+}
